@@ -22,7 +22,7 @@ Object subclass: Sum [
 		];
 
 		ifFalse: [
-			'No implementation.' printNl .
+			'No implementation.' displayNl .
 		] .
 	]
 
@@ -31,10 +31,10 @@ Object subclass: Sum [
 		terminalArguments := #('--help' '--version') .
 		validAlgorithms := #('s' 'r') .
 
-		(arg == '--help') ifTrue: [ self printHelp ] ;
+		(arg = '--help') ifTrue: [ self printHelp ] ;
 
 		ifFalse: [
-			(arg == '--version') ifTrue: [ self printVersion ] ;
+			(arg = '--version') ifTrue: [ self printVersion ] ;
 
 			ifFalse: [
 				argSize := arg size .
@@ -58,7 +58,7 @@ With no FILE, or when FILE is -, read standard input.
 
 GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
 Full documentation at: <https://www.gnu.org/software/coreutils/sum>
-or available locally via: info (coreutils) sum invocation' printNl .
+or available locally via: info ''(coreutils) sum invocation''' displayNl .
 		ObjectMemory quit: 0
 	]
 
@@ -69,14 +69,15 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 
-Written by Kayvan Aghaiepour and David MacKenzie.' printNl .
+Written by Kayvan Aghaiepour and David MacKenzie.' displayNl .
 		ObjectMemory quit: 0
 	]
 
 	printInvalidArg: arg [
-		'sum: invalid option -- ' print .
-		arg displayNl .
-		'Try sum --help for more information.' printNl .
+		'sum: invalid option -- ''' display .
+		arg display .
+		'''' displayNl .
+		'Try ''sum --help'' for more information.' displayNl .
 		ObjectMemory quit: 0
 	]
 ]
