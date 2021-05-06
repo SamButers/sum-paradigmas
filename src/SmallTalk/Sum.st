@@ -1,5 +1,5 @@
 Object subclass: Sum [
-	| targets targetsStream flag |
+	| targets targetsStream flag blockDigits |
 	<comment: 'My instances are able to simulate the behavior of the UNIX sum utility.'>
 
 	Sum class >> new: args [
@@ -47,11 +47,13 @@ Object subclass: Sum [
 	]
 
 	run [
-		| currentTarget targetsAmount |
+		| currentTarget targetsAmount blocks |
 		self openTargets .
 		targetsAmount := targets size .
 
 		(flag = $r) ifTrue: [
+			blocks := self generate1KBlocks .
+
 			1 to: targetsAmount do: [ :i |
 				currentTarget := targetsStream at: i .
 
@@ -59,7 +61,7 @@ Object subclass: Sum [
 				ifFalse: [
 					self bsdChecksum: currentTarget .
 					'    ' display .
-					self display1KBlocks: currentTarget .
+					self display1KBlock: (blocks at: i) .
 
 					(targetsAmount > 1) ifTrue: [ 
 						' ' display .
@@ -132,12 +134,35 @@ Object subclass: Sum [
 		checksum display
 	]
 
+	generate1KBlocks [
+		| blocks block blockSize target |
+
+		blocks := OrderedCollection new .
+		blockDigits := 0 .
+		1 to: (targets size) do: [ :i | 
+			target := targetsStream at: i .
+
+			block := (((target size) / 1024.0) ceiling) asString .
+			blocks addLast: block .
+			blockSize := block size .
+
+			(blockSize > blockDigits) ifTrue: [ blockDigits := blockSize ]
+		] .
+
+		^blocks
+	]
+
 	display512Blocks: target [
 		(((target size) / 512.0) ceiling) display
 	]
 
-	display1KBlocks: target [
-		(((target size) / 1024.0) ceiling) display
+	display1KBlock: block [
+		| blockSize |
+
+		blockSize := block size .
+		0 to: (blockDigits - blockSize) do: [ :i | ' ' display ] .
+
+		block display
 	]
 
 	openTargets [
