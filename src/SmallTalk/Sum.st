@@ -30,7 +30,7 @@ Object subclass: Sum [
 
 	setFlag: arg [
 		| validAlgorithms argSize |
-		validAlgorithms := #('s' 'r') .
+		validAlgorithms := #($s $r) .
 
 		(arg = '--help') ifTrue: [ self printHelp ] ;
 
@@ -40,7 +40,7 @@ Object subclass: Sum [
 			ifFalse: [
 				argSize := arg size .
 
-				2 to: argSize do: [ :i | (validAlgorithms includes: (arg at: i)) ifTrue: [ flag := (arg at i) ] ;
+				2 to: argSize do: [ :i | (validAlgorithms includes: (arg at: i)) ifTrue: [ flag := (arg at: i) ] ;
 				ifFalse: [ self printInvalidArg: (arg at: i) ]]
 			]
 		]
