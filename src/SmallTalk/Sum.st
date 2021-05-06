@@ -1,5 +1,5 @@
 Object subclass: Sum [
-	| targets flag |
+	| targets targetsStream flag |
 	<comment: 'My instances are able to simulate the behavior of the UNIX sum utility.'>
 
 	Sum class >> new: args [
@@ -12,14 +12,14 @@ Object subclass: Sum [
 	init: args [
 		| argsSize currentArg |
 		argsSize := args size .
-		targets := Set new .
+		targets := OrderedCollection new .
 		flag := $r .
 
 		(argsSize > 0) ifTrue: [
 			1 to: argsSize do: [ :i |
 				currentArg := args at: i .
 				((currentArg at: 1) = $-) ifTrue: [ self setFlag: currentArg ] ;
-				ifFalse: [ targets add: currentArg ] .
+				ifFalse: [ targets addLast: currentArg ] .
 			] .
 		];
 
@@ -47,17 +47,26 @@ Object subclass: Sum [
 	]
 
 	run [
-		| currentTarget |
+		| currentTarget targetsAmount |
 		self openTargets .
+		targetsAmount := targets size .
+
 		(flag = $r) ifTrue: [
-			1 to: (targets size) do: [ :i |
-				currentTarget := targets at: i .
+			1 to: targetsAmount do: [ :i |
+				currentTarget := targetsStream at: i .
 
 				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
 				ifFalse: [
 					self bsdChecksum: currentTarget .
 					'    ' display .
-					(((currentTarget size) / 1024.0) ceiling) displayNl .
+					(((currentTarget size) / 1024.0) ceiling) display .
+
+					(targetsAmount > 1) ifTrue: [ 
+						' ' display .
+						(targets at: i) display
+					] .
+
+					'' displayNl .
 					currentTarget close
 				] .
 			]
@@ -84,17 +93,16 @@ Object subclass: Sum [
 	]
 
 	openTargets [
-		| filepath targetsArray |
+		| filepath |
 
-		targetsArray := targets asArray .
+		targetsStream := targets asArray .
+
 		1 to: (targets size) do: [:i | 
-			filepath := targetsArray at: i .
+			filepath := targets at: i .
 
-			((File exists: filepath) = true) ifTrue: [ targetsArray at: 1 put: (FileStream open: filepath) ] ;
-			ifFalse: [ targetsArray at: 1 put: nil ]
-		] .
-
-		targets := targetsArray
+			((File exists: filepath) = true) ifTrue: [ targetsStream at: i put: (FileStream open: filepath) ] ;
+			ifFalse: [ targetsStream at: i put: nil ]
+		]
 	]
 
 	printHelp [
