@@ -59,7 +59,7 @@ Object subclass: Sum [
 				ifFalse: [
 					self bsdChecksum: currentTarget .
 					'    ' display .
-					(((currentTarget size) / 1024.0) ceiling) display .
+					self display1KBlocks: currentTarget .
 
 					(targetsAmount > 1) ifTrue: [ 
 						' ' display .
@@ -71,7 +71,27 @@ Object subclass: Sum [
 				] .
 			]
 		] ;
-		ifFalse: [ 'Not implemented.' displayNl ]
+
+		ifFalse: [
+			1 to: targetsAmount do: [ :i |
+				currentTarget := targetsStream at: i .
+
+				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
+				ifFalse: [
+					self sysvChecksum: currentTarget .
+					' ' display .
+					self display512Blocks: currentTarget .
+
+					(targetsAmount > 1) ifTrue: [ 
+						' ' display .
+						(targets at: i) display
+					] .
+
+					'' displayNl .
+					currentTarget close
+				] .
+			]
+		]
 	]
 
 	bsdChecksum: target [
@@ -90,6 +110,34 @@ Object subclass: Sum [
 		] .
 
 		checksum display
+	]
+
+	sysvChecksum: target [
+		| s r checksum byteValue targetByte |
+
+		checksum := 0 .
+		s := 0 .
+		r := 0 .
+		targetByte := target next .
+		[targetByte ~= nil] whileTrue: [
+			byteValue := targetByte value .
+			s := s + byteValue .
+
+			targetByte := target next .
+		] .
+
+		r := (s bitAnd: 16rFFFF) + ((s bitAnd: 16rFFFFFFFF) bitShift: -16) .
+		checksum := (r bitAnd: 16rFFFF) + (r bitShift: -16) .
+
+		checksum display
+	]
+
+	display512Blocks: target [
+		(((target size) / 512.0) ceiling) display
+	]
+
+	display1KBlocks: target [
+		(((target size) / 1024.0) ceiling) display
 	]
 
 	openTargets [
