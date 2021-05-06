@@ -1,5 +1,5 @@
 Object subclass: Sum [
-	| filename flag |
+	| targets flag |
 	<comment: 'My instances are able to simulate the behavior of the UNIX sum utility.'>
 
 	Sum class >> new: args [
@@ -12,12 +12,14 @@ Object subclass: Sum [
 	init: args [
 		| argsSize currentArg |
 		argsSize := args size .
+		targets := Set new .
+		flag := $r .
 
 		(argsSize > 0) ifTrue: [
 			1 to: argsSize do: [ :i |
 				currentArg := args at: i .
-				((currentArg at: 1) == $-) ifTrue: [ self setFlag: currentArg ] ;
-				ifFalse: [ filename := currentArg ] .
+				((currentArg at: 1) = $-) ifTrue: [ self setFlag: currentArg ] ;
+				ifFalse: [ targets add: currentArg ] .
 			] .
 		];
 
@@ -27,8 +29,7 @@ Object subclass: Sum [
 	]
 
 	setFlag: arg [
-		| terminalArguments validAlgorithms argSize |
-		terminalArguments := #('--help' '--version') .
+		| validAlgorithms argSize |
 		validAlgorithms := #('s' 'r') .
 
 		(arg = '--help') ifTrue: [ self printHelp ] ;
@@ -43,6 +44,57 @@ Object subclass: Sum [
 				ifFalse: [ self printInvalidArg: (arg at: i) ]]
 			]
 		]
+	]
+
+	run [
+		| currentTarget |
+		self openTargets .
+		(flag = $r) ifTrue: [
+			1 to: (targets size) do: [ :i |
+				currentTarget := targets at: i .
+
+				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
+				ifFalse: [
+					self bsdChecksum: currentTarget .
+					'    ' display .
+					(((currentTarget size) / 1024.0) ceiling) displayNl .
+					currentTarget close
+				] .
+			]
+		] ;
+		ifFalse: [ 'Not implemented.' displayNl ]
+	]
+
+	bsdChecksum: target [
+		| checksum byteValue targetByte |
+
+		checksum := 0 .
+		targetByte := target next .
+		[targetByte ~= nil] whileTrue: [
+			byteValue := targetByte value .
+
+			checksum := (checksum bitShift: -1) + ((checksum bitAnd: 1) bitShift: 15) .
+			checksum := checksum + byteValue .
+			checksum := checksum bitAnd: 16rFFFF .
+
+			targetByte := target next .
+		] .
+
+		checksum display
+	]
+
+	openTargets [
+		| filepath targetsArray |
+
+		targetsArray := targets asArray .
+		1 to: (targets size) do: [:i | 
+			filepath := targetsArray at: i .
+
+			((File exists: filepath) = true) ifTrue: [ targetsArray at: 1 put: (FileStream open: filepath) ] ;
+			ifFalse: [ targetsArray at: 1 put: nil ]
+		] .
+
+		targets := targetsArray
 	]
 
 	printHelp [
