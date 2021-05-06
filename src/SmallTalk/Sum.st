@@ -1,5 +1,5 @@
 Object subclass: Sum [
-	| targets targetsStream flag blockDigits |
+	| targets targetsStream flag |
 	<comment: 'My instances are able to simulate the behavior of the UNIX sum utility.'>
 
 	Sum class >> new: args [
@@ -47,21 +47,20 @@ Object subclass: Sum [
 	]
 
 	run [
-		| currentTarget targetsAmount blocks |
+		| currentTarget targetsAmount checksum |
 		self openTargets .
 		targetsAmount := targets size .
 
 		(flag = $r) ifTrue: [
-			blocks := self generate1KBlocks .
-
 			1 to: targetsAmount do: [ :i |
 				currentTarget := targetsStream at: i .
 
 				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
 				ifFalse: [
-					self bsdChecksum: currentTarget .
-					'    ' display .
-					self display1KBlock: (blocks at: i) .
+					checksum := self bsdChecksum: currentTarget .
+
+					self displayBSDChecksum: checksum .
+					self display1KBlock: currentTarget .
 
 					(targetsAmount > 1) ifTrue: [ 
 						' ' display .
@@ -111,7 +110,7 @@ Object subclass: Sum [
 			targetByte := target next .
 		] .
 
-		checksum display
+		^checksum
 	]
 
 	sysvChecksum: target [
@@ -134,33 +133,26 @@ Object subclass: Sum [
 		checksum display
 	]
 
-	generate1KBlocks [
-		| blocks block blockSize target |
+	displayBSDChecksum: checksum [
+		| checksumString |
 
-		blocks := OrderedCollection new .
-		blockDigits := 0 .
-		1 to: (targets size) do: [ :i | 
-			target := targetsStream at: i .
+		checksumString := checksum asString .
+		1 to: (5 - (checksumString size)) do: [ :i | 0 display ].
 
-			block := (((target size) / 1024.0) ceiling) asString .
-			blocks addLast: block .
-			blockSize := block size .
-
-			(blockSize > blockDigits) ifTrue: [ blockDigits := blockSize ]
-		] .
-
-		^blocks
+		checksum display
 	]
 
 	display512Blocks: target [
 		(((target size) / 512.0) ceiling) display
 	]
 
-	display1KBlock: block [
-		| blockSize |
+	display1KBlock: target [
+		| block blockDigitsAmount spaces |
 
-		blockSize := block size .
-		0 to: (blockDigits - blockSize) do: [ :i | ' ' display ] .
+		block := (((target size) / 1024.0) ceiling) asString .
+		blockDigitsAmount := block size .
+		spaces := (6 - blockDigitsAmount) max: 1 .
+		1 to: spaces do: [ :i | ' ' display ] .
 
 		block display
 	]
