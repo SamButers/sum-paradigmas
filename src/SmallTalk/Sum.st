@@ -81,7 +81,7 @@ Object subclass: Sum [
 					' ' display .
 					self display512Blocks: currentTarget .
 
-					(targetsAmount > 1) ifTrue: [ 
+					(isTargetStdin = false) ifTrue: [ 
 						' ' display .
 						(targets at: i) display
 					] .
