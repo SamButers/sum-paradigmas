@@ -1,5 +1,5 @@
 Object subclass: Sum [
-	| targets targetsStream flag |
+	| targets targetsStream isTargetStdin flag |
 	<comment: 'My instances are able to simulate the behavior of the UNIX sum utility.'>
 
 	Sum class >> new: args [
@@ -10,7 +10,7 @@ Object subclass: Sum [
 	]
 
 	init: args [
-		| argsSize currentArg |
+		| argsSize currentArg stdinTarget |
 		argsSize := args size .
 		targets := OrderedCollection new .
 		flag := $r .
@@ -21,11 +21,9 @@ Object subclass: Sum [
 				((currentArg at: 1) = $-) ifTrue: [ self setFlag: currentArg ] ;
 				ifFalse: [ targets addLast: currentArg ] .
 			] .
-		];
-
-		ifFalse: [
-			'No implementation.' displayNl .
 		] .
+
+		((targets size) > 0) ifTrue: [ isTargetStdin := false ]; ifFalse: [ self readStdin ]
 	]
 
 	setFlag: arg [
@@ -48,14 +46,14 @@ Object subclass: Sum [
 
 	run [
 		| currentTarget targetsAmount checksum |
-		self openTargets .
+		(isTargetStdin) ifFalse: [ self openTargets ] .
 		targetsAmount := targets size .
 
 		(flag = $r) ifTrue: [
 			1 to: targetsAmount do: [ :i |
 				currentTarget := targetsStream at: i .
 
-				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
+				(currentTarget = nil) ifTrue: [ self printInvalidFile: (targets at: i) ] ;
 				ifFalse: [
 					checksum := self bsdChecksum: currentTarget .
 
@@ -170,6 +168,26 @@ Object subclass: Sum [
 		]
 	]
 
+	readStdin [
+		| stream byte |
+
+		stream := ReadWriteStream on: Array new .
+		byte := stdin next .
+
+		[byte ~= nil] whileTrue: [
+			stream nextPut: byte .
+
+			byte := stdin next .
+		].
+
+		stream position: 0 .
+
+		targets addLast: 'stdin' .
+		targetsStream := Array new: 1 .
+		targetsStream at: 1 put: stream .
+		isTargetStdin := true .
+	]
+
 	printHelp [
 		'Usage: sum [OPTION]... [FILE]...
 Print checksum and block counts for each FILE.
@@ -203,6 +221,13 @@ Written by Kayvan Aghaiepour and David MacKenzie.' displayNl .
 		arg display .
 		'''' displayNl .
 		'Try ''sum --help'' for more information.' displayNl .
+		ObjectMemory quit: 0
+	]
+
+	printInvalidFile: file [
+		'sum: ' display .
+		file display .
+		': No such file or directory' displayNl .
 		ObjectMemory quit: 0
 	]
 ]
