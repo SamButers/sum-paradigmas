@@ -29,6 +29,13 @@ printInvalidOption ('-' : flag) = putStrLn ("sum: unrecognized option '-" ++ fla
 printInvalidOption flag = putStrLn ("sum: invalid option -- '" ++ flag ++ "'\n\
                                     \Try 'sum --help' for more information.")
 
+getBlocks :: Handle -> [Char] -> IO Integer
+getBlocks handle "-s" = do
+    size <- hFileSize handle
+    return $ ceiling ((fromIntegral size) / 512)
+getBlocks handle "-r" = do
+    size <- hFileSize handle
+    return $ ceiling ((fromIntegral size) / 1024)
 
 getFlag :: [[Char]] -> [Char] -> IO ([Char])
 getFlag [] flag = return flag
@@ -63,6 +70,23 @@ getFlag (f:fs) flag = do
     printInvalidOption formattedFlag
     exitSuccess
 
+printChecksums :: [[Char]] -> [Char] -> IO ()
+printChecksums [] flag = return ()
+printChecksums (target:targets) "-r" = do
+    printChecksums targets "-r"
+printChecksums (target:targets) "-s" = do
+    input <- openFile target ReadMode
+
+    blocks <- getBlocks input "-s"
+
+    inputByteString <- BS.hGetContents input
+    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+
+    putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ (show blocks) ++ " " ++ target)
+
+    hClose input
+    printChecksums targets "-s"
+
 main = do
     args <- getArgs
 
@@ -71,12 +95,12 @@ main = do
 
     flag <- getFlag flags "-r"
 
-    print flag
+    printChecksums targets flag
 
-    input <- openFile (targets!!0) ReadMode
-    byteString <- BS.hGetContents input
+    --input <- openFile (targets!!0) ReadMode
+    --byteString <- BS.hGetContents input
 
-    let bytes = map fromIntegral (BS.unpack byteString) :: [Int]
+    --let bytes = map fromIntegral (BS.unpack byteString) :: [Int]
 
-    print $ bsdchecksum bytes 0
-    print $ sysvchecksum bytes
+    --print $ bsdchecksum bytes 0
+    --print $ sysvchecksum bytes
