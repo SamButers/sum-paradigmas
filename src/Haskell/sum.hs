@@ -20,15 +20,15 @@ sysvchecksum bytes = ((.&.) r 0xffff) + (shiftR r 16)
                         s = sumList bytes 0
                         r = ((.&.) s 0xffff) + (shiftR ((.&.) s 0xffffffff) 16)
 
---addFlagOrTarget "-s" arr = 
---addFlagOrTarget "-r" arr = 
---addFlagOrTarget ('-' : flag) arr = 
---addFlagOrTarget target = target
+getFormattedInvalidFlag :: [Char] -> [Char]
+getFormattedInvalidFlag ('-' : '-' : flag) = "--" ++ flag
+getFormattedInvalidFlag ('-' : flag) = flag
 
---getFlagsAndTargets [] arr = arr
---getFlagsAndTargets (x:xs) arr = getFlagsAndTargets xs new_arr
---                              where
---                                addFlagOrTarget x 
+printInvalidOption ('-' : flag) = putStrLn ("sum: unrecognized option '-" ++ flag ++ "'\n\
+                                            \Try 'sum --help' for more information.")
+printInvalidOption flag = putStrLn ("sum: invalid option -- '" ++ flag ++ "'\n\
+                                    \Try 'sum --help' for more information.")
+
 
 getFlag :: [[Char]] -> [Char] -> IO ([Char])
 getFlag [] flag = return flag
@@ -57,6 +57,10 @@ getFlag ("--help":fs) flag = do
     \GNU coreutils online help: <https://www.gnu.org/software/coreutils/>\n\
     \Full documentation at: <https://www.gnu.org/software/coreutils/sum>\n\
     \or available locally via: info '(coreutils) sum invocation'"
+    exitSuccess
+getFlag (f:fs) flag = do
+    let formattedFlag = getFormattedInvalidFlag f
+    printInvalidOption formattedFlag
     exitSuccess
 
 main = do
