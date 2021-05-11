@@ -20,9 +20,18 @@ sysvchecksum bytes = ((.&.) r 0xffff) + (shiftR r 16)
                         s = sumList bytes 0
                         r = ((.&.) s 0xffff) + (shiftR ((.&.) s 0xffffffff) 16)
 
-getFormattedInvalidFlag :: [Char] -> [Char]
-getFormattedInvalidFlag ('-' : '-' : flag) = "--" ++ flag
-getFormattedInvalidFlag ('-' : flag) = flag
+formatInvalidFlag :: [Char] -> [Char]
+formatInvalidFlag ('-' : '-' : flag) = "--" ++ flag
+formatInvalidFlag ('-' : flag) = flag
+
+strMul :: [Char] -> Int -> [Char]
+strMul str multiplier = concat $ replicate multiplier str
+
+formatChecksum :: Int -> [Char]
+formatChecksum checksum = (strMul "0" (5 - checksumSize)) ++ checksumString
+                        where
+                            checksumString = show checksum
+                            checksumSize = length checksumString
 
 printInvalidOption ('-' : flag) = putStrLn ("sum: unrecognized option '-" ++ flag ++ "'\n\
                                             \Try 'sum --help' for more information.")
@@ -66,23 +75,41 @@ getFlag ("--help":fs) flag = do
     \or available locally via: info '(coreutils) sum invocation'"
     exitSuccess
 getFlag (f:fs) flag = do
-    let formattedFlag = getFormattedInvalidFlag f
+    let formattedFlag = formatInvalidFlag f
     printInvalidOption formattedFlag
     exitSuccess
 
-printChecksums :: [[Char]] -> [Char] -> IO ()
-printChecksums [] flag = return ()
-printChecksums (target:targets) "-r" = do
-    printChecksums targets "-r"
-printChecksums (target:targets) "-s" = do
+printBSDChecksums :: [[Char]] -> Int -> IO ()
+printBSDChecksums [] sums = return ()
+printBSDChecksums (target:targets) sums = do
     input <- openFile target ReadMode
 
-    blocks <- getBlocks input "-s"
+    blocks <- getBlocks input "-r"
+    let blocksStr = show blocks
 
     inputByteString <- BS.hGetContents input
     let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
 
-    putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ (show blocks) ++ " " ++ target)
+    if sums > 1
+        then putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr ++ " " ++ target)
+        else putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr)
+
+    hClose input
+    printBSDChecksums targets sums
+
+printChecksums :: [[Char]] -> [Char] -> IO ()
+printChecksums [] flag = return ()
+printChecksums targets "-r" = printBSDChecksums targets $ length targets
+printChecksums (target:targets) "-s" = do
+    input <- openFile target ReadMode
+
+    blocks <- getBlocks input "-s"
+    let blocksStr = show blocks
+
+    inputByteString <- BS.hGetContents input
+    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+
+    putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ blocksStr ++ " " ++ target)
 
     hClose input
     printChecksums targets "-s"
