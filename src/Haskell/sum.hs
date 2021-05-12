@@ -1,6 +1,7 @@
 import System.Environment
 import System.Exit
 import System.IO
+import System.Directory
 
 import Data.Bits
 
@@ -82,36 +83,48 @@ getFlag (f:fs) flag = do
 printBSDChecksums :: [[Char]] -> Int -> IO ()
 printBSDChecksums [] sums = return ()
 printBSDChecksums (target:targets) sums = do
-    input <- openFile target ReadMode
+    isValidFile <- doesFileExist target
+    if isValidFile
+        then do
+            input <- openFile target ReadMode
 
-    blocks <- getBlocks input "-r"
-    let blocksStr = show blocks
+            blocks <- getBlocks input "-r"
+            let blocksStr = show blocks
 
-    inputByteString <- BS.hGetContents input
-    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+            inputByteString <- BS.hGetContents input
+            let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
 
-    if sums > 1
-        then putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr ++ " " ++ target)
-        else putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr)
+            if sums > 1
+                then putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr ++ " " ++ target)
+                else putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocksStr)))) ++ blocksStr)
 
-    hClose input
+            hClose input
+        else do
+            putStrLn ("sum: " ++ target ++ ": No such file or directory")
+
     printBSDChecksums targets sums
 
 printChecksums :: [[Char]] -> [Char] -> IO ()
 printChecksums [] flag = return ()
 printChecksums targets "-r" = printBSDChecksums targets $ length targets
 printChecksums (target:targets) "-s" = do
-    input <- openFile target ReadMode
+    isValidFile <- doesFileExist target
+    if isValidFile
+        then do
+            input <- openFile target ReadMode
 
-    blocks <- getBlocks input "-s"
-    let blocksStr = show blocks
+            blocks <- getBlocks input "-s"
+            let blocksStr = show blocks
 
-    inputByteString <- BS.hGetContents input
-    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+            inputByteString <- BS.hGetContents input
+            let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
 
-    putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ blocksStr ++ " " ++ target)
+            putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ blocksStr ++ " " ++ target)
 
-    hClose input
+            hClose input
+        else do
+            putStrLn ("sum: " ++ target ++ ": No such file or directory")
+
     printChecksums targets "-s"
 
 main = do
