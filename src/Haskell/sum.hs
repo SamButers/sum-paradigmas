@@ -36,7 +36,7 @@ formatChecksum checksum = (strMul "0" (5 - checksumSize)) ++ checksumString
 
 printInvalidOption ('-' : flag) = putStrLn ("sum: unrecognized option '-" ++ flag ++ "'\n\
                                             \Try 'sum --help' for more information.")
-printInvalidOption flag = putStrLn ("sum: invalid option -- '" ++ flag ++ "'\n\
+printInvalidOption flag = putStrLn ("sum: invalid option -- '" ++ [flag!!0] ++ "'\n\
                                     \Try 'sum --help' for more information.")
 
 getBlocks :: Handle -> [Char] -> IO Integer
@@ -80,8 +80,18 @@ getFlag (f:fs) flag = do
     printInvalidOption formattedFlag
     exitSuccess
 
+isStdinTarget :: [[Char]] -> [[Char]]
+isStdinTarget [] = [[], "stdin"]
+isStdinTarget targets = targets
+
 printBSDChecksums :: [[Char]] -> Int -> IO ()
 printBSDChecksums [] sums = return ()
+printBSDChecksums ([]:["stdin"]) sums = do
+    inputByteString <- BS.getContents
+    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+    let blocks = show $ ceiling $ (fromIntegral (length inputBytes))/1024
+
+    putStrLn ((formatChecksum $ bsdchecksum inputBytes 0) ++ (strMul " " (max 1 (6 - (length blocks)))) ++ blocks)
 printBSDChecksums (target:targets) sums = do
     isValidFile <- doesFileExist target
     if isValidFile
@@ -107,6 +117,12 @@ printBSDChecksums (target:targets) sums = do
 printChecksums :: [[Char]] -> [Char] -> IO ()
 printChecksums [] flag = return ()
 printChecksums targets "-r" = printBSDChecksums targets $ length targets
+printChecksums ([]:["stdin"]) "-s" = do
+    inputByteString <- BS.getContents
+    let inputBytes = map fromIntegral (BS.unpack inputByteString) :: [Int]
+    let blocks = show $ ceiling $ (fromIntegral (length inputBytes))/512
+
+    putStrLn ((show $ sysvchecksum inputBytes) ++ " " ++ blocks)
 printChecksums (target:targets) "-s" = do
     isValidFile <- doesFileExist target
     if isValidFile
@@ -131,7 +147,7 @@ main = do
     args <- getArgs
 
     let flags = filter (\x -> (x!!0) == '-') args
-    let targets = filter (\x -> (x!!0) /= '-') args
+    let targets = isStdinTarget $ filter (\x -> (x!!0) /= '-') args
 
     flag <- getFlag flags "-r"
 

@@ -2,4 +2,7 @@
 *.o
 *.hi
 *.bin
+output/
+input/
+Makefile
 
