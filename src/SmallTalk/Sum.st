@@ -27,7 +27,7 @@ Object subclass: Sum [
 	]
 
 	setFlag: arg [
-		| validAlgorithms argSize |
+		| validAlgorithms argSize invalidArgInfo |
 		validAlgorithms := #($s $r) .
 
 		(arg = '--help') ifTrue: [ self printHelp ] ;
@@ -39,7 +39,12 @@ Object subclass: Sum [
 				argSize := arg size .
 
 				2 to: argSize do: [ :i | (validAlgorithms includes: (arg at: i)) ifTrue: [ flag := (arg at: i) ] ;
-				ifFalse: [ self printInvalidArg: (arg at: i) ]]
+					ifFalse: [
+						invalidArgInfo := Array new: 2 .
+						invalidArgInfo at: 1 put: (arg at: i) ; at: 2 put: arg .
+						self printInvalidArg: invalidArgInfo
+					]
+				]
 			]
 		]
 	]
@@ -75,7 +80,7 @@ Object subclass: Sum [
 			1 to: targetsAmount do: [ :i |
 				currentTarget := targetsStream at: i .
 
-				(currentTarget = nil) ifTrue: [ self printInvalidFile: currentTarget ] ;
+				(currentTarget = nil) ifTrue: [ self printInvalidFile: (targets at: i) ] ;
 				ifFalse: [
 					self sysvChecksum: currentTarget .
 					' ' display .
@@ -216,9 +221,21 @@ Written by Kayvan Aghaiepour and David MacKenzie.' displayNl .
 		ObjectMemory quit: 0
 	]
 
-	printInvalidArg: arg [
-		'sum: invalid option -- ''' display .
-		arg display .
+	printInvalidArg: argInfo [
+		| invalidArg fullArg |
+		invalidArg := argInfo at: 1 .
+		fullArg := argInfo at: 2 .
+
+		((fullArg at: 2) = $-) ifTrue: [
+			'sum: unrecognized option ''' display .
+			fullArg display .
+		];
+
+		ifFalse: [
+			'sum: invalid option -- ''' display .
+			invalidArg display .
+		] .
+
 		'''' displayNl .
 		'Try ''sum --help'' for more information.' displayNl .
 		ObjectMemory quit: 0
