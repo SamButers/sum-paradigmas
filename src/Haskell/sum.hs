@@ -7,18 +7,18 @@ import Data.Bits
 
 import qualified Data.ByteString as BS
 
+cyclicShiftR :: Int -> Int
 cyclicShiftR x = (shiftR x 1) + (shiftL ((.&.) x 1) 15)
 
-sumList [] sum = sum
-sumList (x:xs) sum = sumList xs (x + sum)
-
+bsdchecksum :: [Int] -> Int -> Int
 bsdchecksum [] checksum = checksum
 bsdchecksum (x:xs) checksum = bsdchecksum xs new_checksum
                             where new_checksum = (.&.) ((cyclicShiftR checksum) + x) 0xffff
 
+sysvchecksum :: [Int] -> Int
 sysvchecksum bytes = ((.&.) r 0xffff) + (shiftR r 16)
                      where
-                        s = sumList bytes 0
+                        s = sum bytes
                         r = ((.&.) s 0xffff) + (shiftR ((.&.) s 0xffffffff) 16)
 
 formatInvalidFlag :: [Char] -> [Char]
@@ -34,6 +34,7 @@ formatChecksum checksum = (strMul "0" (5 - checksumSize)) ++ checksumString
                             checksumString = show checksum
                             checksumSize = length checksumString
 
+printInvalidOption :: [Char] -> IO ()
 printInvalidOption ('-' : flag) = putStrLn ("sum: unrecognized option '-" ++ flag ++ "'\n\
                                             \Try 'sum --help' for more information.")
 printInvalidOption flag = putStrLn ("sum: invalid option -- '" ++ [flag!!0] ++ "'\n\
@@ -152,11 +153,3 @@ main = do
     flag <- getFlag flags "-r"
 
     printChecksums targets flag
-
-    --input <- openFile (targets!!0) ReadMode
-    --byteString <- BS.hGetContents input
-
-    --let bytes = map fromIntegral (BS.unpack byteString) :: [Int]
-
-    --print $ bsdchecksum bytes 0
-    --print $ sysvchecksum bytes
