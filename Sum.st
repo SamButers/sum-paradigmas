@@ -40,9 +40,12 @@ Object subclass: Sum [
 
 				2 to: argSize do: [ :i | (validAlgorithms includes: (arg at: i)) ifTrue: [ flag := (arg at: i) ] ;
 					ifFalse: [
-						invalidArgInfo := Array new: 2 .
-						invalidArgInfo at: 1 put: (arg at: i) ; at: 2 put: arg .
-						self printInvalidArg: invalidArgInfo
+						(arg = '--sysv') ifTrue: [ flag := $s ] ;
+						ifFalse: [
+							invalidArgInfo := Array new: 2 .
+							invalidArgInfo at: 1 put: (arg at: i) ; at: 2 put: arg .
+							self printInvalidArg: invalidArgInfo
+						]
 					]
 				]
 			]

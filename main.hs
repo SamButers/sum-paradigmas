@@ -52,6 +52,7 @@ getFlag :: [[Char]] -> [Char] -> IO ([Char])
 getFlag [] flag = return flag
 getFlag ("-r":fs) flag = getFlag fs "-r"
 getFlag ("-s":fs) flag = getFlag fs "-s"
+getFlag ("--sysv":fs) flag = getFlag fs "-s"
 getFlag ("--version":fs) flag = do
     putStrLn "sum (GNU coreutils) 8.30\n\
     \Copyright (C) 2018 Free Software Foundation, Inc.\n\
